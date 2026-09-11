@@ -11,5 +11,5 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
-    <style name="Theme.OJ Music Player" parent="Theme.ArchiveTune" />
+    <style name="Theme.OJMusicPlayer" parent="Theme.ArchiveTune" />
 </resources>
