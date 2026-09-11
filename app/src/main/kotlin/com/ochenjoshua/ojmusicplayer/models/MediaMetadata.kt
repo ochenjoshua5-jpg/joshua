@@ -1,0 +1,151 @@
+/*
+ * OJ Music Player (2026) | Modified work by MuwMix
+ * ArchiveTune (2026) | Original work by © Rukamori
+ * GPL-3.0 License | Contributors: see git history
+ */
+
+package com.ochenjoshua.ojmusicplayer.models
+
+import androidx.compose.runtime.Immutable
+import com.ochenjoshua.ojmusicplayer.db.entities.Song
+import com.ochenjoshua.ojmusicplayer.db.entities.SongEntity
+import com.ochenjoshua.ojmusicplayer.innertube.models.SongItem
+import com.ochenjoshua.ojmusicplayer.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_OMV
+import com.ochenjoshua.ojmusicplayer.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_UGC
+import com.ochenjoshua.ojmusicplayer.ui.utils.resize
+import java.io.Serializable
+import java.time.LocalDateTime
+
+@Immutable
+data class MediaMetadata(
+    val id: String,
+    val title: String,
+    val artists: List<Artist>,
+    val duration: Int,
+    val thumbnailUrl: String? = null,
+    val album: Album? = null,
+    val setVideoId: String? = null,
+    val spotifyTrackId: String? = null,
+    val isrc: String? = null,
+    val explicit: Boolean = false,
+    val liked: Boolean = false,
+    val likedDate: LocalDateTime? = null,
+    val inLibrary: LocalDateTime? = null,
+    val isMusicVideo: Boolean = false,
+) : Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+
+    data class Artist(
+        val id: String?,
+        val name: String,
+        val thumbnailUrl: String? = null,
+    ) : Serializable {
+        companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
+
+    data class Album(
+        val id: String,
+        val title: String,
+    ) : Serializable {
+        companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
+
+    fun toSongEntity() =
+        SongEntity(
+            id = id,
+            title = title,
+            duration = duration,
+            thumbnailUrl = thumbnailUrl,
+            albumId = album?.id,
+            albumName = album?.title,
+            isrc = isrc,
+            explicit = explicit,
+            liked = liked,
+            likedDate = likedDate,
+            inLibrary = inLibrary,
+        )
+}
+
+fun MediaMetadata.toSong() =
+    Song(
+        song = toSongEntity(),
+        artists = artists.map {
+            com.ochenjoshua.ojmusicplayer.db.entities.ArtistEntity(
+                id = it.id ?: com.ochenjoshua.ojmusicplayer.db.entities.ArtistEntity.generateArtistId(),
+                name = it.name,
+                thumbnailUrl = it.thumbnailUrl,
+            )
+        },
+        album = album?.let {
+            com.ochenjoshua.ojmusicplayer.db.entities.AlbumEntity(
+                id = it.id,
+                title = it.title,
+                songCount = 0,
+                duration = 0,
+            )
+        },
+    )
+
+fun Song.toMediaMetadata() =
+    MediaMetadata(
+        id = song.id,
+        title = song.title,
+        artists =
+            artists.map {
+                MediaMetadata.Artist(
+                    id = it.id,
+                    name = it.name,
+                    thumbnailUrl = it.thumbnailUrl,
+                )
+            },
+        duration = song.duration,
+        thumbnailUrl = song.thumbnailUrl,
+        album =
+            album?.let {
+                MediaMetadata.Album(
+                    id = it.id,
+                    title = it.title,
+                )
+            } ?: song.albumId?.let { albumId ->
+                MediaMetadata.Album(
+                    id = albumId,
+                    title = song.albumName.orEmpty(),
+                )
+            },
+        isrc = song.isrc,
+        explicit = song.explicit,
+    )
+
+fun SongItem.toMediaMetadata() =
+    MediaMetadata(
+        id = id,
+        title = title,
+        artists =
+            artists.map {
+                MediaMetadata.Artist(
+                    id = it.id,
+                    name = it.name,
+                    thumbnailUrl = null,
+                )
+            },
+        duration = duration ?: -1,
+        thumbnailUrl = thumbnail.resize(1080, 1080),
+        album =
+            album?.let {
+                MediaMetadata.Album(
+                    id = it.id,
+                    title = it.name,
+                )
+            },
+        explicit = explicit,
+        setVideoId = setVideoId,
+        isMusicVideo =
+            endpoint?.watchEndpointMusicSupportedConfigs?.watchEndpointMusicConfig?.musicVideoType in
+                listOf(MUSIC_VIDEO_TYPE_OMV, MUSIC_VIDEO_TYPE_UGC),
+    )

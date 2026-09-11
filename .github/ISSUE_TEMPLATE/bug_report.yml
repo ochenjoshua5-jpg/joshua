@@ -1,0 +1,104 @@
+name: Bug Report
+description: Report a bug or crash in YumaPlayer
+labels: [BUG]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue and helping improve YumaPlayer! Please make sure this bug has not been reported already.
+
+  - type: checkboxes
+    id: pre-submission-checklist
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I am using the latest available release/beta.
+          required: true
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: YumaPlayer version
+      description: Found in Settings -> About or APK name.
+      placeholder: "e.g. 1.1.0-Beta, v1.0..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected area
+      options:
+        - Music player / now playing
+        - Playback queue / radio / cache
+        - Spotify sync / integrations
+        - Library / playlists / local media
+        - Search / browse
+        - Lyrics / visuals / animations
+        - Crash / startup
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to reproduce
+      description: What steps cause this bug?
+      placeholder: |
+        1. Open YumaPlayer
+        2. Go to ...
+        3. Tap ...
+        4. See error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior-comparison
+    attributes:
+      label: Expected vs Actual behavior
+      placeholder: |
+        Expected:
+
+        Actual:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: android-version
+    attributes:
+      label: Android version
+      options:
+        - Android 16
+        - Android 15
+        - Android 14
+        - Android 13
+        - Android 12
+        - Android 11
+        - Android 10 or older
+        - Custom ROM
+    validations:
+      required: true
+
+  - type: input
+    id: device-model
+    attributes:
+      label: Device model
+      placeholder: "Example: Samsung Galaxy A35, Pixel 7, etc."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Crash trace (optional)
+      description: Paste logcat or crash traces here if available.
+      placeholder: "Paste logs here..."
+
+  - type: textarea
+    id: visual-evidence
+    attributes:
+      label: Screenshots or screen recordings (optional)
+      description: Drag and drop files here.

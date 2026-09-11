@@ -1,0 +1,1340 @@
+/*
+ * OJ Music Player (2026) | Modified work by MuwMix
+ * ArchiveTune (2026) | Original work by © Rukamori
+ * GPL-3.0 License | Contributors: see git history
+ */
+
+package com.ochenjoshua.ojmusicplayer.ui.screens.library
+
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.graphics.ColorUtils
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import com.ochenjoshua.ojmusicplayer.LocalDatabase
+import com.ochenjoshua.ojmusicplayer.LocalPlayerAwareWindowInsets
+import com.ochenjoshua.ojmusicplayer.LocalPlayerConnection
+import com.ochenjoshua.ojmusicplayer.R
+import com.ochenjoshua.ojmusicplayer.constants.LibraryFilter
+import com.ochenjoshua.ojmusicplayer.constants.LikeSource
+import com.ochenjoshua.ojmusicplayer.constants.ShowSpotifyPlaylistsKey
+import com.ochenjoshua.ojmusicplayer.extensions.toMediaItem
+import com.ochenjoshua.ojmusicplayer.playback.queues.ListQueue
+import com.ochenjoshua.ojmusicplayer.spotify.SpotifyLibraryViewModel
+import com.ochenjoshua.ojmusicplayer.spotify.SpotifyMapper
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyPlaylist
+import com.ochenjoshua.ojmusicplayer.ui.component.ExpressivePullToRefreshBox
+import com.ochenjoshua.ojmusicplayer.ui.settings.SettingsAnimations
+import com.ochenjoshua.ojmusicplayer.ui.settings.SettingsDimensions
+import com.ochenjoshua.ojmusicplayer.ui.theme.YumaSegmentPosition
+import com.ochenjoshua.ojmusicplayer.ui.theme.yumaClickable
+import com.ochenjoshua.ojmusicplayer.ui.theme.yumaGlassCard
+import com.ochenjoshua.ojmusicplayer.utils.rememberPreference
+import com.ochenjoshua.ojmusicplayer.viewmodels.LibraryMixViewModel
+import com.ochenjoshua.ojmusicplayer.viewmodels.LibraryTopMixEmptyReason
+import com.ochenjoshua.ojmusicplayer.viewmodels.LibraryTopMixUiModel
+import com.ochenjoshua.ojmusicplayer.viewmodels.LibraryTopMixesUiState
+import com.ochenjoshua.ojmusicplayer.viewmodels.MostPlayedAlbumUiModel
+import com.ochenjoshua.ojmusicplayer.viewmodels.MostPlayedAlbumUiState
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun LibraryMixScreen(
+    navController: NavController,
+    filterContent: (@Composable () -> Unit)?,
+    selectedTagIds: Set<String>,
+    onTabSelected: (LibraryFilter) -> Unit,
+    viewModel: LibraryMixViewModel = hiltViewModel(),
+    spotifyLibraryViewModel: SpotifyLibraryViewModel = hiltViewModel(),
+) {
+    val context = LocalContext.current
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val coroutineScope = rememberCoroutineScope()
+    val database = LocalDatabase.current
+
+    val likedSongsCount by database.likedSongsCount(LikeSource.YTM).collectAsState(initial = 0)
+    val recentSongs by database.recentSongs(15).collectAsState(initial = emptyList())
+
+    val albums by viewModel.albums.collectAsStateWithLifecycle()
+    val artists by viewModel.artists.collectAsStateWithLifecycle()
+    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val mostPlayedAlbumUiState by viewModel.mostPlayedAlbumUiState.collectAsStateWithLifecycle()
+    val topMixesUiState by viewModel.topMixesUiState.collectAsStateWithLifecycle()
+    val spotifyPlaylists by spotifyLibraryViewModel.playlists.collectAsStateWithLifecycle()
+    val (showSpotifyPlaylists) = rememberPreference(ShowSpotifyPlaylistsKey, true)
+
+    val filteredPlaylistIds by database
+        .playlistIdsByTags(
+            if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList(),
+        ).collectAsState(initial = emptyList())
+
+    val visiblePlaylists =
+        remember(playlists, selectedTagIds, filteredPlaylistIds) {
+            playlists.filter { playlist ->
+                val name = playlist.playlist.name
+                val matchesName = !name.contains("episode", ignoreCase = true)
+                val matchesTags = selectedTagIds.isEmpty() || playlist.id in filteredPlaylistIds
+                matchesName && matchesTags
+            }
+        }
+    val visibleSpotifyPlaylists =
+        remember(showSpotifyPlaylists, spotifyPlaylists) {
+            if (showSpotifyPlaylists) {
+                spotifyPlaylists
+            } else {
+                emptyList()
+            }
+        }
+
+    LaunchedEffect(viewModel) {
+        viewModel.topMixEvents.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    ExpressivePullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.syncAllLibrary() },
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        LazyColumn(
+            state = rememberLazyListState(),
+            verticalArrangement = Arrangement.spacedBy(SettingsDimensions.SectionSpacing),
+            contentPadding = LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom).asPaddingValues(),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            item(key = "most_played_album_spotlight", contentType = "spotlight") {
+                val state = mostPlayedAlbumUiState
+                if (state is MostPlayedAlbumUiState.Success) {
+                    val album = state.album
+                    val playAlbum =
+                        remember(album.tracks, playerConnection) {
+                            {
+                                playerConnection.playQueue(
+                                    ListQueue(items = album.tracks.map { it.toMediaItem() }),
+                                )
+                            }
+                        }
+                    val shuffleAlbum =
+                        remember(album.tracks, playerConnection) {
+                            {
+                                playerConnection.playQueue(
+                                    ListQueue(items = album.tracks.shuffled().map { it.toMediaItem() }),
+                                )
+                            }
+                        }
+
+                    MostPlayedAlbumSpotlightCard(
+                        album = album,
+                        onOpenAlbum = { navController.navigate("album/${album.id}") },
+                        onPlayAll = playAlbum,
+                        onShuffle = shuffleAlbum,
+                    )
+                }
+            }
+
+            // 2. Shortcuts 2x2 Grid
+            item(key = "shortcuts_grid") {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding),
+                    verticalArrangement = Arrangement.spacedBy(SettingsDimensions.SectionSpacing),
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(SettingsDimensions.SectionSpacing),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        // Liked Songs
+                        ShortcutCard(
+                            title = stringResource(R.string.liked_songs),
+                            countText = "$likedSongsCount ${stringResource(R.string.tracks_label)}",
+                            iconRes = R.drawable.favorite,
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            iconColor = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f),
+                            onClick = { navController.navigate("auto_playlist/liked") },
+                        )
+
+                        // Offline/Downloaded
+                        ShortcutCard(
+                            title = stringResource(R.string.offline_shortcut),
+                            countText = stringResource(R.string.downloaded_desc),
+                            iconRes = R.drawable.offline,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            iconColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f),
+                            onClick = { navController.navigate("auto_playlist/downloaded") },
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(SettingsDimensions.SectionSpacing),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        // Cached
+                        ShortcutCard(
+                            title = stringResource(R.string.cached),
+                            countText = stringResource(R.string.instant_playback),
+                            iconRes = R.drawable.cached,
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            iconColor = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f),
+                            onClick = { navController.navigate("cache_playlist/cached") },
+                        )
+
+                        // Local Files
+                        ShortcutCard(
+                            title = stringResource(R.string.local_files),
+                            countText = stringResource(R.string.on_device),
+                            iconRes = R.drawable.snippet_folder,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            iconColor = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.weight(1f),
+                            onClick = { navController.navigate("local_songs") },
+                        )
+                    }
+                }
+            }
+
+            // 3. Recently Played Horizontal Row
+            if (recentSongs.isNotEmpty()) {
+                item(key = "recently_played") {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(R.string.recently_played),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            items(recentSongs) { song ->
+                                Column(
+                                    modifier =
+                                        Modifier
+                                            .width(110.dp)
+                                            .clickable {
+                                                playerConnection.playQueue(ListQueue(items = listOf(song.toMediaItem())))
+                                            },
+                                ) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .size(110.dp)
+                                                .clip(RoundedCornerShape(28.dp)),
+                                    ) {
+                                        AsyncImage(
+                                            model = song.song.thumbnailUrl,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize(),
+                                        )
+                                        // Play Overlay button
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .padding(8.dp)
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.play),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = song.song.title,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                    )
+                                    Text(
+                                        text = song.artists.joinToString(", ") { it.name },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item(key = "top_mixes") {
+                TopMixesForYouSection(
+                    state = topMixesUiState,
+                    onRefresh = viewModel::refreshTopMixes,
+                    onConfigureAi = { navController.navigate("settings/ai_integration") },
+                    onPlayMix = { mix ->
+                        playerConnection.playQueue(
+                            ListQueue(
+                                items = mix.tracks.map { it.toMediaItem() },
+                            ),
+                        )
+                    },
+                )
+            }
+
+            val playlistTagFilterContent = filterContent
+            if (playlistTagFilterContent != null) {
+                item(key = "playlist_tag_filters") {
+                    playlistTagFilterContent()
+                }
+            }
+
+            // Playlists Row
+            if (visiblePlaylists.isNotEmpty() || visibleSpotifyPlaylists.isNotEmpty()) {
+                item(key = "your_playlists") {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.your_playlists),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                            Text(
+                                text = stringResource(R.string.see_all),
+                                style =
+                                    MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    ),
+                                modifier =
+                                    Modifier
+                                        .clip(CircleShape)
+                                        .clickable { onTabSelected(LibraryFilter.PLAYLISTS) }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
+
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = SettingsDimensions.ScreenHorizontalPadding),
+                            horizontalArrangement = Arrangement.spacedBy(SettingsDimensions.ScreenHorizontalPadding),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            items(
+                                items = visiblePlaylists.take(8),
+                                key = { playlist -> "playlist_${playlist.id}" },
+                                contentType = { "library_playlist" },
+                            ) { playlist ->
+                                Column(
+                                    modifier =
+                                        Modifier
+                                            .width(130.dp)
+                                            .yumaClickable(
+                                                pressedScale = SettingsAnimations.PressScale,
+                                                onClick = {
+                                                    if (!playlist.playlist.isEditable && playlist.playlist.browseId?.startsWith("VL") == true &&
+                                                        (playlist.songCount == 0 || playlist.playlist.remoteSongCount == 0)
+                                                    ) {
+                                                        navController.navigate("online_playlist/${playlist.playlist.browseId}")
+                                                    } else {
+                                                        navController.navigate("local_playlist/${playlist.id}")
+                                                    }
+                                                },
+                                            )
+                                            .yumaGlassCard(
+                                                shape = RoundedCornerShape(SettingsDimensions.LibraryCardRadius),
+                                                position = YumaSegmentPosition.Single,
+                                            )
+                                            .padding(SettingsDimensions.SectionSpacing),
+                                ) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .size(106.dp)
+                                                .clip(RoundedCornerShape(SettingsDimensions.LibrarySmallRadius)),
+                                    ) {
+                                        AsyncImage(
+                                            model = playlist.thumbnails.getOrNull(0),
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize(),
+                                        )
+                                        // Play Overlay button
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .padding(6.dp)
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary)
+                                                    .clickable {
+                                                        playerConnection.let { conn ->
+                                                            coroutineScope.launch {
+                                                                database.playlistSongs(playlist.id).firstOrNull()?.let { songs ->
+                                                                    if (songs.isNotEmpty()) {
+                                                                        conn.playQueue(
+                                                                            ListQueue(items = songs.map { it.song.toMediaItem() }),
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.play),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = playlist.playlist.name,
+                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                    )
+                                    Text(
+                                        text = "${playlist.songCount} ${stringResource(R.string.tracks_label)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    )
+                                }
+                            }
+
+                            item(key = "spotify_liked_songs_card") {
+                                val likedSongsTotal by spotifyLibraryViewModel.likedSongsTotal.collectAsStateWithLifecycle()
+
+                                Column(
+                                    modifier =
+                                        Modifier
+                                            .width(130.dp)
+                                            .yumaClickable(
+                                                pressedScale = SettingsAnimations.PressScale,
+                                                onClick = { navController.navigate("spotify_liked_songs") },
+                                            )
+                                            .yumaGlassCard(
+                                                shape = RoundedCornerShape(SettingsDimensions.LibraryCardRadius),
+                                                position = YumaSegmentPosition.Single,
+                                            )
+                                            .padding(SettingsDimensions.SectionSpacing),
+                                ) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .size(106.dp)
+                                                .clip(RoundedCornerShape(SettingsDimensions.LibrarySmallRadius))
+                                                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.16f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.favorite),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(44.dp),
+                                        )
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .padding(6.dp)
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary)
+                                                    .clickable {
+                                                        playerConnection.let { conn ->
+                                                            coroutineScope.launch {
+                                                                val preloadTrack = com.ochenjoshua.ojmusicplayer.spotify.Spotify.likedSongs(limit = 1, offset = 0).getOrNull()?.items?.firstOrNull()?.track
+                                                                val preloadItem = preloadTrack?.let { com.ochenjoshua.ojmusicplayer.spotify.SpotifyPlaybackResolver.resolveToMetadata(it) }
+                                                                conn.playQueue(
+                                                                    com.ochenjoshua.ojmusicplayer.spotify.SpotifyLikedSongsQueue(
+                                                                        title = context.getString(R.string.spotify_liked_songs),
+                                                                        preloadItem = preloadItem,
+                                                                    ),
+                                                                )
+                                                            }
+                                                        }
+                                                    },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.play),
+                                                contentDescription = stringResource(R.string.play),
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.spotify_liked_songs),
+                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                    )
+                                    Text(
+                                        text = "$likedSongsTotal ${stringResource(R.string.tracks_label)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    )
+                                }
+                            }
+
+                            items(
+                                items = visibleSpotifyPlaylists.take(8),
+                                key = { playlist -> "spotify_playlist_${playlist.id}" },
+                                contentType = { "library_spotify_playlist" },
+                            ) { playlist ->
+                                SpotifyPlaylistCompactCard(
+                                    playlist = playlist,
+                                    onClick = {
+                                        navController.navigate("spotify_playlist/${playlist.id}")
+                                    },
+                                )
+                            }
+
+                            // Ending "More" card
+                            item {
+                                Column(
+                                    modifier =
+                                        Modifier
+                                            .width(130.dp)
+                                            .height(168.dp)
+                                            .yumaClickable(
+                                                pressedScale = SettingsAnimations.PressScale,
+                                                onClick = {
+                                                    onTabSelected(LibraryFilter.PLAYLISTS)
+                                                },
+                                            )
+                                            .yumaGlassCard(
+                                                shape = RoundedCornerShape(SettingsDimensions.LibraryCardRadius),
+                                                position = YumaSegmentPosition.Single,
+                                            ),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .size(56.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.expand_more),
+                                            contentDescription = stringResource(R.string.more_playlists_desc),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(SettingsDimensions.SectionSpacing))
+                                    Text(
+                                        text = stringResource(R.string.more_label),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 5. Your Artists Row
+            if (artists.isNotEmpty()) {
+                item(key = "your_artists") {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.your_artists),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                            Text(
+                                text = stringResource(R.string.see_all),
+                                style =
+                                    MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    ),
+                                modifier =
+                                    Modifier
+                                        .clip(CircleShape)
+                                        .clickable { onTabSelected(LibraryFilter.ARTISTS) }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            items(artists.take(10)) { item ->
+                                val artist = item.artist
+                                Column(
+                                    modifier =
+                                        Modifier
+                                            .width(80.dp)
+                                            .clickable {
+                                                navController.navigate("artist/${artist.id}")
+                                            },
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    AsyncImage(
+                                        model = artist.thumbnailUrl,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier =
+                                            Modifier
+                                                .size(72.dp)
+                                                .clip(CircleShape),
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = artist.name,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                    )
+                                }
+                            }
+
+                            // Ending "+" button
+                            item {
+                                Column(
+                                    modifier =
+                                        Modifier
+                                            .width(80.dp)
+                                            .clickable {
+                                                onTabSelected(LibraryFilter.ARTISTS)
+                                            },
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .size(72.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.add),
+                                            contentDescription = stringResource(R.string.more_label),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.more_label),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpotifyPlaylistCompactCard(
+    playlist: SpotifyPlaylist,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val thumbnailUrl = remember(playlist) { SpotifyMapper.getPlaylistThumbnail(playlist) }
+
+    Column(
+        modifier =
+            modifier
+                .width(130.dp)
+                .yumaClickable(
+                    pressedScale = SettingsAnimations.PressScale,
+                    onClick = onClick,
+                )
+                .yumaGlassCard(
+                    shape = RoundedCornerShape(SettingsDimensions.LibraryCardRadius),
+                    position = YumaSegmentPosition.Single,
+                )
+                .padding(SettingsDimensions.SectionSpacing),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(106.dp)
+                    .clip(RoundedCornerShape(SettingsDimensions.LibrarySmallRadius)),
+        ) {
+            AsyncImage(
+                model = thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.spotify_icon),
+                    contentDescription = stringResource(R.string.spotify_account),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = playlist.name,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = "${playlist.tracks?.total ?: 0} ${stringResource(R.string.tracks_label)}",
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+        )
+    }
+}
+
+@Composable
+private fun TopMixesForYouSection(
+    state: LibraryTopMixesUiState,
+    onRefresh: () -> Unit,
+    onConfigureAi: () -> Unit,
+    onPlayMix: (LibraryTopMixUiModel) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (state) {
+        LibraryTopMixesUiState.Loading -> {
+            TopMixesMessageSection(
+                message = stringResource(R.string.library_top_mixes_loading),
+                isRefreshing = true,
+                onRefresh = onRefresh,
+                showRefresh = false,
+                modifier = modifier,
+            )
+        }
+
+        is LibraryTopMixesUiState.Empty -> {
+            TopMixesEmptySection(
+                reason = state.reason,
+                isRefreshing = state.isRefreshing,
+                onRefresh = onRefresh,
+                onConfigureAi = onConfigureAi,
+                modifier = modifier,
+            )
+        }
+
+        is LibraryTopMixesUiState.Error -> {
+            TopMixesMessageSection(
+                message = state.message,
+                isRefreshing = false,
+                onRefresh = onRefresh,
+                showRefresh = true,
+                modifier = modifier,
+            )
+        }
+
+        is LibraryTopMixesUiState.Success -> {
+            if (state.mixes.isEmpty()) {
+                TopMixesMessageSection(
+                    message = stringResource(R.string.library_top_mixes_no_recent_history),
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = onRefresh,
+                    showRefresh = true,
+                    modifier = modifier,
+                )
+            } else {
+                Column(modifier = modifier.fillMaxWidth()) {
+                    TopMixesHeader(
+                        isRefreshing = state.isRefreshing,
+                        onRefresh = onRefresh,
+                        showRefresh = true,
+                    )
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = SettingsDimensions.ScreenHorizontalPadding),
+                        horizontalArrangement = Arrangement.spacedBy(SettingsDimensions.ScreenHorizontalPadding),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        items(
+                            items = state.mixes,
+                            key = { mix -> mix.id },
+                            contentType = { "library_top_mix" },
+                        ) { mix ->
+                            LibraryTopMixCard(
+                                mix = mix,
+                                onPlay = { onPlayMix(mix) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopMixesMessageSection(
+    message: String,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    showRefresh: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        TopMixesHeader(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            showRefresh = showRefresh,
+        )
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = SettingsDimensions.ScreenHorizontalPadding),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun TopMixesEmptySection(
+    reason: LibraryTopMixEmptyReason,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    onConfigureAi: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        TopMixesHeader(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            showRefresh = reason != LibraryTopMixEmptyReason.AI_NOT_CONFIGURED,
+        )
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
+                    .yumaGlassCard(
+                        shape = RoundedCornerShape(SettingsDimensions.LibrarySheetRadius),
+                        position = YumaSegmentPosition.Single,
+                    )
+                    .padding(20.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(SettingsDimensions.SectionSpacing),
+            ) {
+                Text(
+                    text =
+                        stringResource(
+                            when (reason) {
+                                LibraryTopMixEmptyReason.AI_NOT_CONFIGURED -> R.string.library_top_mixes_ai_not_configured_title
+                                LibraryTopMixEmptyReason.NO_RECENT_HISTORY -> R.string.library_top_mixes_no_recent_history_title
+                            },
+                        ),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text =
+                        stringResource(
+                            when (reason) {
+                                LibraryTopMixEmptyReason.AI_NOT_CONFIGURED -> R.string.library_top_mixes_ai_not_configured_desc
+                                LibraryTopMixEmptyReason.NO_RECENT_HISTORY -> R.string.library_top_mixes_no_recent_history
+                            },
+                        ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (reason == LibraryTopMixEmptyReason.AI_NOT_CONFIGURED) {
+                    Button(onClick = onConfigureAi) {
+                        Text(text = stringResource(R.string.library_top_mixes_configure_ai))
+                    }
+                } else {
+                    FilledTonalButton(
+                        onClick = onRefresh,
+                        enabled = !isRefreshing,
+                    ) {
+                        Text(text = stringResource(R.string.library_top_mixes_refresh))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopMixesHeader(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    showRefresh: Boolean,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = SettingsDimensions.ScreenHorizontalPadding, top = 8.dp, end = SettingsDimensions.ScreenHorizontalPadding, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = stringResource(R.string.top_mixes),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        if (showRefresh) {
+            IconButton(
+                onClick = onRefresh,
+                enabled = !isRefreshing,
+            ) {
+                if (isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.sync),
+                        contentDescription = stringResource(R.string.library_top_mixes_refresh),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LibraryTopMixCard(
+    mix: LibraryTopMixUiModel,
+    onPlay: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .width(180.dp)
+                .height(130.dp)
+                .yumaClickable(
+                    pressedScale = SettingsAnimations.PressScale,
+                    onClick = onPlay,
+                )
+                .yumaGlassCard(
+                    shape = RoundedCornerShape(SettingsDimensions.LibrarySheetRadius),
+                    position = YumaSegmentPosition.Single,
+                ),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .padding(SettingsDimensions.ScreenHorizontalPadding),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column {
+                Text(
+                    text = mix.title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = mix.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
+                    mix.tracks.take(3).forEach { track ->
+                        val artworkUrl = track.thumbnailUrl
+                        if (artworkUrl == null) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                            )
+                        } else {
+                            AsyncImage(
+                                model = artworkUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier =
+                                    Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                            )
+                        }
+                    }
+                }
+
+                IconButton(
+                    onClick = onPlay,
+                    colors =
+                        IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.play),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MostPlayedAlbumSpotlightCard(
+    album: MostPlayedAlbumUiModel,
+    onOpenAlbum: () -> Unit,
+    onPlayAll: () -> Unit,
+    onShuffle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val trackCountText = pluralStringResource(R.plurals.n_song, album.trackCount, album.trackCount)
+
+    Box(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
+                .yumaClickable(
+                    pressedScale = SettingsAnimations.PressScale,
+                    onClick = onOpenAlbum,
+                )
+                .yumaGlassCard(
+                    shape = RoundedCornerShape(SettingsDimensions.SegmentedCornerLarge),
+                    position = YumaSegmentPosition.Single,
+                )
+                .padding(SettingsDimensions.ScreenHorizontalPadding),
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(SettingsDimensions.LibraryCardRadius))
+                            .background(primaryColor.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val thumbnailUrl = album.thumbnailUrl
+                    if (thumbnailUrl != null) {
+                        AsyncImage(
+                            model = thumbnailUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.album),
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(SettingsDimensions.ScreenHorizontalPadding))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier =
+                            Modifier
+                                .clip(CircleShape)
+                                .background(primaryColor.copy(alpha = 0.16f))
+                                .padding(horizontal = SettingsDimensions.BadgePaddingH, vertical = 2.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.star),
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(10.dp),
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = stringResource(R.string.most_played_badge),
+                            style =
+                                MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp,
+                                    letterSpacing = 0.5.sp,
+                                ),
+                            color = primaryColor,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = album.title,
+                        style =
+                            MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = trackCountText,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(SettingsDimensions.RowIconSpacing))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Button(
+                    onClick = onPlayAll,
+                    shape = CircleShape,
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    contentPadding = PaddingValues(horizontal = SettingsDimensions.ScreenHorizontalPadding, vertical = 8.dp),
+                    modifier = Modifier.height(SettingsDimensions.LibraryChipHeight),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.play),
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.play_all),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    )
+                }
+
+                IconButton(
+                    onClick = onShuffle,
+                    colors =
+                        IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            contentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    modifier = Modifier.size(SettingsDimensions.LibraryChipHeight),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.shuffle),
+                        contentDescription = stringResource(R.string.shuffle),
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ShortcutCard(
+    title: String,
+    countText: String,
+    iconRes: Int,
+    containerColor: Color,
+    iconColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val isDark =
+        MaterialTheme.colorScheme.surface.let {
+            ColorUtils.calculateLuminance(it.toArgb()) < 0.5
+        }
+
+    val iconBgColor =
+        remember(containerColor, iconColor, isDark) {
+            if (isDark) {
+                iconColor.copy(alpha = 0.16f)
+            } else {
+                iconColor.copy(alpha = 0.10f)
+            }
+        }
+
+    Box(
+        modifier =
+            modifier
+                .yumaClickable(
+                    pressedScale = SettingsAnimations.PressScale,
+                    onClick = onClick,
+                )
+                .yumaGlassCard(
+                    shape = RoundedCornerShape(SettingsDimensions.LibraryCardRadius),
+                    position = YumaSegmentPosition.Single,
+                )
+                .padding(SettingsDimensions.SectionSpacing),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(SettingsDimensions.SectionSpacing),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(SettingsDimensions.LibraryBadgeSize)
+                        .clip(RoundedCornerShape(SettingsDimensions.LibrarySmallRadius))
+                        .background(iconBgColor),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(SettingsDimensions.RowIconInnerSize),
+                )
+            }
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = countText,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}

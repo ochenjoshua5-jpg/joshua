@@ -1,0 +1,59 @@
+/*
+ * OJ Music Player (2026) | Modified work by MuwMix
+ * ArchiveTune (2026) | Original work by © Rukamori
+ * GPL-3.0 License | Contributors: see git history
+ */
+
+package com.ochenjoshua.ojmusicplayer.ui.screens.library
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.ochenjoshua.ojmusicplayer.constants.PlaylistTagsFilterKey
+import com.ochenjoshua.ojmusicplayer.db.MusicDatabase
+import com.ochenjoshua.ojmusicplayer.db.entities.TagEntity
+import com.ochenjoshua.ojmusicplayer.utils.rememberPreference
+
+@Composable
+internal fun rememberPlaylistTagFilterState(database: MusicDatabase): Pair<Set<String>, (Set<String>) -> Unit> {
+    val allTags: List<TagEntity>? by database.allTags().collectAsState(initial = null)
+    val (selectedTagsFilter, onSelectedTagsFilterChange) = rememberPreference(PlaylistTagsFilterKey, "")
+    val selectedTagIds =
+        remember(selectedTagsFilter) {
+            selectedTagsFilter.toPlaylistTagIds()
+        }
+    val validTagIds =
+        remember(allTags) {
+            allTags?.map(TagEntity::id)?.toSet()
+        }
+    val sanitizedTagIds =
+        remember(selectedTagIds, validTagIds) {
+            validTagIds?.let { selectedTagIds.sanitize(validTagIds = it) } ?: selectedTagIds
+        }
+
+    LaunchedEffect(validTagIds, selectedTagIds, sanitizedTagIds, onSelectedTagsFilterChange) {
+        if (validTagIds != null && selectedTagIds != sanitizedTagIds) {
+            onSelectedTagsFilterChange(sanitizedTagIds.toPreferenceValue())
+        }
+    }
+
+    val onSelectedTagIdsChange: (Set<String>) -> Unit =
+        remember(onSelectedTagsFilterChange) {
+            { tagIds -> onSelectedTagsFilterChange(tagIds.toPreferenceValue()) }
+        }
+
+    return sanitizedTagIds to onSelectedTagIdsChange
+}
+
+internal fun String.toPlaylistTagIds(): Set<String> =
+    split(",")
+        .asSequence()
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .toCollection(LinkedHashSet())
+
+internal fun Set<String>.sanitize(validTagIds: Set<String>): Set<String> = filterTo(LinkedHashSet()) { it in validTagIds }
+
+internal fun Set<String>.toPreferenceValue(): String = joinToString(",")

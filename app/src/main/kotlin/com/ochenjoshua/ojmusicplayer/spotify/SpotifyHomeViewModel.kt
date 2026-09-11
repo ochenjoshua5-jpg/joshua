@@ -1,0 +1,319 @@
+package com.ochenjoshua.ojmusicplayer.spotify
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import com.ochenjoshua.ojmusicplayer.R
+import com.ochenjoshua.ojmusicplayer.innertube.YouTube
+import com.ochenjoshua.ojmusicplayer.innertube.models.AlbumItem
+import com.ochenjoshua.ojmusicplayer.innertube.models.ArtistItem
+import com.ochenjoshua.ojmusicplayer.models.SpotifyRecentItem
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyAlbum
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyArtist
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyHomeFeedItem
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyHomeFeedSection
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyImage
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyPlaylist
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyPlaylistOwner
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyPlaylistTracksRef
+import com.ochenjoshua.ojmusicplayer.spotify.models.SpotifyTrack
+import javax.inject.Inject
+
+sealed interface SpotifyHomeScreenState {
+    data object Loading : SpotifyHomeScreenState
+    data class Success(
+        val sections: List<SpotifyHomeSection>,
+        val recentItems: List<SpotifyRecentItem> = emptyList(),
+        val frequentArtists: List<SpotifyArtist> = emptyList()
+    ) : SpotifyHomeScreenState
+    data object Empty : SpotifyHomeScreenState
+    data class Error(val messageResId: Int, val notAuthenticated: Boolean = false) : SpotifyHomeScreenState
+}
+
+sealed interface SpotifyHomeNavigationEvent {
+    data class OpenAlbum(val browseId: String) : SpotifyHomeNavigationEvent
+    data class OpenArtist(val id: String) : SpotifyHomeNavigationEvent
+}
+
+sealed interface SpotifyHomeAction {
+    data object Refresh : SpotifyHomeAction
+    data class AlbumClick(val album: SpotifyAlbum) : SpotifyHomeAction
+    data class ArtistClick(val artist: SpotifyArtist) : SpotifyHomeAction
+}
+
+@HiltViewModel
+class SpotifyHomeViewModel @Inject constructor(
+    private val repository: SpotifyLibraryRepository,
+    private val profileCache: SpotifyProfileCache,
+) : ViewModel() {
+
+    private val _screenState = MutableStateFlow<SpotifyHomeScreenState>(SpotifyHomeScreenState.Loading)
+    val screenState: StateFlow<SpotifyHomeScreenState> = _screenState.asStateFlow()
+
+    private val _navigationEvents = MutableSharedFlow<SpotifyHomeNavigationEvent>(extraBufferCapacity = 1)
+    val navigationEvents: SharedFlow<SpotifyHomeNavigationEvent> = _navigationEvents.asSharedFlow()
+
+    init {
+        load()
+    }
+
+    fun onAction(action: SpotifyHomeAction) {
+        when (action) {
+            SpotifyHomeAction.Refresh -> load()
+            is SpotifyHomeAction.AlbumClick -> resolveAlbum(action.album)
+            is SpotifyHomeAction.ArtistClick -> resolveArtist(action.artist)
+        }
+    }
+
+    private fun resolveAlbum(album: SpotifyAlbum) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val browseId = YouTube.search(album.name, YouTube.SearchFilter.FILTER_ALBUM)
+                .getOrNull()
+                ?.items
+                ?.firstOrNull() as? AlbumItem
+            if (browseId != null) {
+                _navigationEvents.emit(SpotifyHomeNavigationEvent.OpenAlbum(browseId.browseId))
+            }
+        }
+    }
+
+    private fun resolveArtist(artist: SpotifyArtist) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val artistItem = YouTube.search(artist.name, YouTube.SearchFilter.FILTER_ARTIST)
+                .getOrNull()
+                ?.items
+                ?.firstOrNull() as? ArtistItem
+            if (artistItem != null) {
+                _navigationEvents.emit(SpotifyHomeNavigationEvent.OpenArtist(artistItem.id))
+            }
+        }
+    }
+
+    private fun load() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val cachedData = profileCache.restoreFromDataStore()
+            if (cachedData.recentItems.isNotEmpty() || cachedData.topTracks.isNotEmpty() || cachedData.frequentArtists.isNotEmpty()) {
+                val cachedSections = mutableListOf<SpotifyHomeSection>()
+                if (cachedData.topTracks.isNotEmpty()) {
+                    cachedSections.add(
+                        SpotifyHomeSection(
+                            title = "spotify_top_tracks",
+                            type = SectionType.TRACKS,
+                            tracks = cachedData.topTracks
+                        )
+                    )
+                }
+                _screenState.update {
+                    SpotifyHomeScreenState.Success(
+                        sections = cachedSections,
+                        recentItems = cachedData.recentItems,
+                        frequentArtists = cachedData.frequentArtists,
+                    )
+                }
+            } else {
+                _screenState.update { SpotifyHomeScreenState.Loading }
+            }
+
+            try {
+                val session = repository.restoreSession()
+                if (!session.isAuthenticated) {
+                    _screenState.update { SpotifyHomeScreenState.Error(R.string.spotify_not_connected, notAuthenticated = true) }
+                    return@launch
+                }
+
+                val sections = mutableListOf<SpotifyHomeSection>()
+                var frequentArtists = emptyList<SpotifyArtist>()
+                var recentItems = emptyList<SpotifyRecentItem>()
+
+                val topTracksDeferred = async { Spotify.topTracks(limit = 20) }
+                val newReleasesDeferred = async { Spotify.newReleases(limit = 20) }
+                val homeDeferred = async { Spotify.home(sectionItemsLimit = 10) }
+                val topArtistsDeferred = async { Spotify.topArtists(limit = 20) }
+
+                val topTracksResult = topTracksDeferred.await()
+                val newReleasesResult = newReleasesDeferred.await()
+                val homeResult = homeDeferred.await()
+                val topArtistsResult = topArtistsDeferred.await()
+
+                var topTracksList = emptyList<SpotifyTrack>()
+                topTracksResult.onSuccess { topTracks ->
+                    if (topTracks.items.isNotEmpty()) {
+                        topTracksList = topTracks.items
+                        sections.add(
+                            SpotifyHomeSection(
+                                title = "spotify_top_tracks",
+                                type = SectionType.TRACKS,
+                                tracks = topTracks.items
+                            )
+                        )
+                    }
+                }
+
+                if (topTracksList.isEmpty() && cachedData.topTracks.isNotEmpty()) {
+                    sections.add(
+                        SpotifyHomeSection(
+                            title = "spotify_top_tracks",
+                            type = SectionType.TRACKS,
+                            tracks = cachedData.topTracks
+                        )
+                    )
+                }
+
+                newReleasesResult.onSuccess { newReleases ->
+                    val albums = newReleases.albums?.items.orEmpty()
+                    if (albums.isNotEmpty()) {
+                        sections.add(
+                            SpotifyHomeSection(
+                                title = "spotify_new_releases",
+                                type = SectionType.ALBUMS,
+                                albums = albums
+                            )
+                        )
+                    }
+                }
+
+                topArtistsResult.onSuccess { topArtists ->
+                    frequentArtists = topArtists.items
+                }
+                if (frequentArtists.isEmpty()) {
+                    frequentArtists = cachedData.frequentArtists
+                }
+
+                homeResult.onSuccess { feed ->
+                    feed.sections.forEach { raw ->
+                        val isRecent = raw.isShortsOrRecent
+
+                        if (isRecent && recentItems.isEmpty()) {
+                            recentItems = raw.items.mapNotNull { item ->
+                                when (item) {
+                                    is SpotifyHomeFeedItem.Album -> SpotifyRecentItem.Album(
+                                        id = item.id,
+                                        title = item.name,
+                                        subtitle = item.artists.joinToString { it.name },
+                                        thumbnailUrl = item.imageUrl,
+                                        artists = item.artists
+                                    )
+                                    is SpotifyHomeFeedItem.Playlist -> SpotifyRecentItem.Playlist(
+                                        id = item.id,
+                                        title = item.name,
+                                        subtitle = item.ownerName.orEmpty(),
+                                        thumbnailUrl = item.imageUrl,
+                                        trackCount = item.totalCount
+                                    )
+                                    is SpotifyHomeFeedItem.Artist -> null
+                                }
+                            }
+                        } else if (!isRecent) {
+                            val converted = convertHomeSection(raw)
+                            if (converted != null) {
+                                sections.add(converted)
+                            }
+                        }
+                    }
+                }
+
+                if (recentItems.isEmpty()) {
+                    recentItems = cachedData.recentItems
+                }
+
+                if (recentItems.isNotEmpty() || topTracksList.isNotEmpty() || frequentArtists.isNotEmpty()) {
+                    profileCache.persistToDataStore(
+                        recentItems = recentItems,
+                        topTracks = topTracksList.ifEmpty { cachedData.topTracks },
+                        frequentArtists = frequentArtists,
+                    )
+                }
+
+                if (sections.isEmpty() && recentItems.isEmpty() && frequentArtists.isEmpty()) {
+                    _screenState.update { SpotifyHomeScreenState.Empty }
+                } else {
+                    _screenState.update {
+                        SpotifyHomeScreenState.Success(
+                            sections = sections,
+                            recentItems = recentItems,
+                            frequentArtists = frequentArtists,
+                        )
+                    }
+                }
+
+            } catch (e: Exception) {
+                if (e is Spotify.SpotifyException && e.statusCode == 401) {
+                    _screenState.update { SpotifyHomeScreenState.Error(R.string.spotify_not_connected, notAuthenticated = true) }
+                } else if (_screenState.value !is SpotifyHomeScreenState.Success) {
+                    _screenState.update { SpotifyHomeScreenState.Error(R.string.error_unknown) }
+                }
+            }
+        }
+    }
+
+    private fun convertHomeSection(feedSection: SpotifyHomeFeedSection): SpotifyHomeSection? {
+        val title = feedSection.title ?: return null
+
+        val playlists = feedSection.items.filterIsInstance<SpotifyHomeFeedItem.Playlist>()
+        val albums = feedSection.items.filterIsInstance<SpotifyHomeFeedItem.Album>()
+        val artists = feedSection.items.filterIsInstance<SpotifyHomeFeedItem.Artist>()
+
+        val counts = arrayOf(
+            SectionType.PLAYLISTS to playlists.size,
+            SectionType.ALBUMS to albums.size,
+            SectionType.ARTISTS to artists.size,
+        )
+        val (dominant, size) = counts.maxByOrNull { it.second } ?: return null
+        if (size == 0) return null
+
+        return when (dominant) {
+            SectionType.PLAYLISTS -> SpotifyHomeSection(
+                title = title,
+                type = SectionType.PLAYLISTS,
+                playlists = playlists.map {
+                    SpotifyPlaylist(
+                        id = it.id,
+                        name = it.name,
+                        description = it.description,
+                        images = listOfNotNull(it.imageUrl?.let { url -> SpotifyImage(url, null, null) }),
+                        owner = it.ownerName?.let { owner -> SpotifyPlaylistOwner(id = "", displayName = owner) },
+                        tracks = SpotifyPlaylistTracksRef(total = it.totalCount),
+                        uri = it.uri
+                    )
+                }
+            )
+            SectionType.ALBUMS -> SpotifyHomeSection(
+                title = title,
+                type = SectionType.ALBUMS,
+                albums = albums.map {
+                    SpotifyAlbum(
+                        id = it.id,
+                        name = it.name,
+                        albumType = it.albumType,
+                        artists = it.artists,
+                        images = listOfNotNull(it.imageUrl?.let { url -> SpotifyImage(url, null, null) }),
+                        uri = it.uri
+                    )
+                }
+            )
+            SectionType.ARTISTS -> SpotifyHomeSection(
+                title = title,
+                type = SectionType.ARTISTS,
+                artists = artists.map {
+                    SpotifyArtist(
+                        id = it.id,
+                        name = it.name,
+                        images = listOfNotNull(it.imageUrl?.let { url -> SpotifyImage(url, null, null) }),
+                        uri = it.uri
+                    )
+                }
+            )
+            else -> null
+        }
+    }
+}
