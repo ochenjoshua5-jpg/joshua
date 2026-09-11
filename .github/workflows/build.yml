@@ -25,19 +25,12 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build debug APK
-        run: ./gradlew :app:assembleGmsDebug --stacktrace
+        run: ./gradlew :app:assembleGmsMobileUniversalDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
-        with:
-          name: oj-music-player-debug
-          path: app/build/outputs/apk/gms/debug/*.apk
-          if-no-files-found: warn
-
-      - name: Upload any APK as fallback
-        uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: oj-music-player-any-apk
+          name: oj-music-player-apk
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: warn
