@@ -9,6 +9,7 @@
     <string name="flac_streaming_quality">FLAC Quality (Streaming)</string>
     <string name="flac_download_quality">FLAC Quality (Download)</string>
     <string name="folder_persist_failed">Failed to save folder permission</string>
+    <string name="about_position_yuki">Yuki</string>
     <string name="home">Home</string>
     <string name="songs">Songs</string>
     <string name="artists">Artists</string>
