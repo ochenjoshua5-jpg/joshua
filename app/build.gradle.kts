@@ -10,6 +10,12 @@ plugins {
     alias(libs.plugins.aboutlibraries.android)
 }
 
+kotlin {
+    compilerOptions {
+        moduleName.set("oj_music_player")
+    }
+}
+
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
