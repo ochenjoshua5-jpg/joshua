@@ -104,6 +104,31 @@ static HANDLE open_self(void)
                        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
+/* Returns the size of the APK embedded in this executable, or 0 on failure. */
+static unsigned long long embedded_apk_size(void)
+{
+    HANDLE h = open_self();
+    if (h == INVALID_HANDLE_VALUE) return 0;
+
+    LARGE_INTEGER li, pos;
+    unsigned char footer[FOOTER_LEN];
+    DWORD got = 0;
+    unsigned long long size = 0;
+    BOOL ok = FALSE;
+
+    if (GetFileSizeEx(h, &li) && li.QuadPart > FOOTER_LEN) {
+        pos.QuadPart = li.QuadPart - FOOTER_LEN;
+        SetFilePointerEx(h, pos, NULL, FILE_BEGIN);
+        if (ReadFile(h, footer, FOOTER_LEN, &got, NULL) && got == FOOTER_LEN &&
+            memcmp(footer + 8, FOOTER_MAGIC, 8) == 0) {
+            for (int i = 7; i >= 0; --i) size = (size << 8) | footer[i];
+            ok = (size > 0 && size <= (unsigned long long)(li.QuadPart - FOOTER_LEN));
+        }
+    }
+    CloseHandle(h);
+    return ok ? size : 0;
+}
+
 static BOOL read_embedded_apk(unsigned char **data, DWORD *size)
 {
     HANDLE h = open_self();
@@ -165,9 +190,17 @@ static BOOL extract_apk(void)
     join_path(g_apkPath, MAX_PATH, appDir, APK_RES_NAME);
 
     if (file_exists(g_apkPath)) {
-        log_text(L"[i] Bundled app already extracted:");
-        log_text(g_apkPath);
-        return TRUE;
+        unsigned long long embedded = embedded_apk_size();
+        HANDLE probe = CreateFileW(g_apkPath, GENERIC_READ, FILE_SHARE_READ, NULL,
+                                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        LARGE_INTEGER have; have.QuadPart = -1;
+        if (probe != INVALID_HANDLE_VALUE) { GetFileSizeEx(probe, &have); CloseHandle(probe); }
+        if (embedded != 0 && (unsigned long long)have.QuadPart == embedded) {
+            log_text(L"[i] Bundled app already extracted:");
+            log_text(g_apkPath);
+            return TRUE;
+        }
+        log_text(L"[i] Refreshing the extracted app package...");
     }
 
     unsigned char *data = NULL; DWORD size = 0;

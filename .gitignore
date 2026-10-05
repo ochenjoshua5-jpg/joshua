@@ -130,3 +130,4 @@ opencode.json
 dist/
 launcher/*.exe
 apk/
+__pycache__/
