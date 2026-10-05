@@ -20,22 +20,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Cache Gradle
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.gradle/caches
@@ -56,7 +56,7 @@ jobs:
         run: ./gradlew :app:assembleGmsMobileUniversalDebug --stacktrace --no-daemon
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: oj-music-apk
           path: app/build/outputs/apk/**/*.apk
@@ -68,7 +68,7 @@ jobs:
     needs: apk
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install mingw-w64
         run: |
@@ -76,7 +76,7 @@ jobs:
           sudo apt-get install -y -qq gcc-mingw-w64-x86-64
 
       - name: Download APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: oj-music-apk
           path: apk
@@ -89,7 +89,7 @@ jobs:
           ls -lh dist
 
       - name: Upload launcher
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: oj-music-windows-launcher
           path: dist/*.exe
