@@ -302,6 +302,14 @@ OJ MUSIC is an independent third-party client. It is **not affiliated with, endo
 
 ---
 
+## 🖥️ Windows launcher
+
+`dist/OJ-MUSIC.exe` is a self-contained Windows program that installs and starts the app on a
+connected phone or emulator — the APK is bundled inside the executable. See
+[`launcher/README.md`](launcher/README.md).
+
+---
+
 ## 👤 Credits
 
 **OJ MUSIC** — Made by **Ochen Joshua**.
