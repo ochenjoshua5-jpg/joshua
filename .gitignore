@@ -125,3 +125,8 @@ deploy*.py
 /opencode.json
 opencode.json
 /.omo/
+
+# OJ MUSIC build output
+dist/
+launcher/*.exe
+apk/

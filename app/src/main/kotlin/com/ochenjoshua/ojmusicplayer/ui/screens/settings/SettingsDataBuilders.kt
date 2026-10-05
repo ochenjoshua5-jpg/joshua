@@ -1,5 +1,6 @@
 /*
- * OJ Music Player (2026) | Modified work by MuwMix
+ * OJ MUSIC (2026) | Made by Ochen Joshua
+ * Based on YumaPlayer (2026) | Modified work by MuwMix
  * ArchiveTune (2026) | Original work by © Rukamori
  * GPL-3.0 License | Contributors: see git history
  */
@@ -216,7 +217,7 @@ fun buildSettingsGroups(
                                 key = "about",
                                 icon = painterResource(R.drawable.ic_about),
                                 title = stringResource(R.string.about),
-                                subtitle = "v${BuildConfig.VERSION_NAME} • Ochen Joshua",
+                                subtitle = "v${BuildConfig.VERSION_NAME} • Made by Ochen Joshua",
                                 showUpdateIndicator = false,
                                 accentColor = MaterialTheme.colorScheme.primary,
                                 onClick = { navController.navigate("settings/about") },

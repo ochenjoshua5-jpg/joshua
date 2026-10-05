@@ -102,23 +102,21 @@ fun extractSeedColor(bitmap: Bitmap, config: ColorExtractionConfig = ColorExtrac
  */
 
 fun generateDarkColorSchemeFromSeed(seedColor: Color): ColorScheme {
-    val scheme = runCatching {
+    return runCatching {
         val sourceHct = Hct.fromInt(seedColor.toArgb())
         SchemeFidelity(sourceHct, true, 0.0).toComposeColorScheme()
     }.getOrElse {
         SchemeFidelity(Hct.fromInt(0xFF1DB954.toInt()), true, 0.0).toComposeColorScheme()
     }
-    return scheme.copy(secondary = Color(0xFFB388FF))
 }
 
 fun generateLightColorSchemeFromSeed(seedColor: Color): ColorScheme {
-    val scheme = runCatching {
+    return runCatching {
         val sourceHct = Hct.fromInt(seedColor.toArgb())
         SchemeFidelity(sourceHct, false, 0.0).toComposeColorScheme()
     }.getOrElse {
         SchemeFidelity(Hct.fromInt(0xFF1DB954.toInt()), false, 0.0).toComposeColorScheme()
     }
-    return scheme.copy(secondary = Color(0xFFB388FF))
 }
 
 // ============================================================================

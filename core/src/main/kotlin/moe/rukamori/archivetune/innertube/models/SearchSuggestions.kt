@@ -1,5 +1,6 @@
 /*
- * OJ Music Player (2026) | Modified work by MuwMix
+ * OJ MUSIC (2026) | Made by Ochen Joshua
+ * Based on YumaPlayer (2026) | Modified work by MuwMix
  * ArchiveTune (2026) | Original work by © Rukamori
  * GPL-3.0 License | Contributors: see git history
  */

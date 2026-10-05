@@ -71,7 +71,7 @@
     <string name="library_top_mixes_refresh">Refresh mixes</string>
     <string name="library_top_mixes_configure_ai">Configure AI</string>
     <string name="library_top_mixes_ai_not_configured_title">Configure AI to build mixes</string>
-    <string name="library_top_mixes_ai_not_configured_desc">AI integration is required before Yuma can build personal top mixes.</string>
+    <string name="library_top_mixes_ai_not_configured_desc">AI integration is required before OJ MUSIC can build personal top mixes.</string>
     <string name="library_top_mixes_no_recent_history_title">No recent listening mix yet</string>
     <string name="library_top_mixes_no_recent_history">Listen to more songs, then refresh to build AI mixes from your recent history.</string>
     <string name="library_top_mixes_no_valid_mixes">AI did not return any playable mixes from your recent history.</string>
@@ -182,11 +182,7 @@
     <string name="add">Add</string>
     <string name="add_to_playlist">Add to playlist</string>
     <string name="add_to_n_playlists">Add to %1$d</string>
-    <string name="no_playlists_yet">Your playlist is waiting, Ashley</string>
-    <string name="greeting_morning_ashley">Good morning, Ashley</string>
-    <string name="greeting_day_ashley">Hey Ashley</string>
-    <string name="greeting_evening_ashley">Good evening, Ashley</string>
-    <string name="greeting_night_ashley">Late night vibes, Ashley</string>
+    <string name="no_playlists_yet">Your playlist is waiting for its first song</string>
     <string name="pin_to_speed_dial">Pin to speed dial</string>
     <string name="remove_from_speed_dial">Remove from speed dial</string>
     <string name="view_artist">View artist</string>
@@ -906,7 +902,7 @@
     <string name="permission_status_allowed">Allowed</string>
     <string name="next">Next</string>
     <string name="allow">Allow</string>
-    <string name="onboarding_welcome_title">Welcome to Yuma</string>
+    <string name="onboarding_welcome_title">Welcome to OJ MUSIC</string>
     <string name="onboarding_welcome_subtitle">Set up playback, local music, and update permissions before you start listening.</string>
     <string name="onboarding_permissions_title">Review permissions</string>
     <string name="onboarding_permissions_subtitle">Grant only what you want now. You can continue and allow permissions later.</string>
@@ -1022,7 +1018,7 @@
     <string name="together_activity_error">Error: %1$s</string>
     <string name="got_it">Got it</string>
     <string name="together_dont_show_again">Don\'t show this again</string>
-    <string name="together_welcome_title">Welcome to Yuma Music Together</string>
+    <string name="together_welcome_title">Welcome to OJ MUSIC Together</string>
     <string name="together_welcome_body">Music Together lets multiple devices share a live session with a synced queue and playback.</string>
     <string name="together_welcome_host_title">Host a session</string>
     <string name="together_welcome_host_body">Tap Start session, then share the session link. Keep OJ Music Player open in the background while hosting.</string>
@@ -1107,7 +1103,6 @@
     <string name="qobuz_user_auth_token">Qobuz User Auth Token</string>
     <string name="memory_cache_toggle">Memory Cache</string>
     <string name="select_flac_download_folder">Select FLAC Download Folder</string>
-    <string name="app_name">OJ Music Player</string>
     <string name="creator_ochen_joshua">Created by Ochen Joshua</string>
     <string name="made_by_ochen_joshua">Made by Ochen Joshua</string>
     <string name="find_your_tune">Finding your tune...</string>
