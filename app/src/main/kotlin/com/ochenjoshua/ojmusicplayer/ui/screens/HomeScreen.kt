@@ -1,5 +1,5 @@
 /*
- * OJ Music Player (2026) | Modified work by MuwMix
+ * YumaPlayer (2026) | Modified work by MuwMix
  * ArchiveTune (2026) | Original work by © Rukamori
  * GPL-3.0 License | Contributors: see git history
  */
@@ -39,8 +39,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
@@ -141,7 +139,6 @@ fun HomeScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(Color(0xFFFFF0F5), Color(0xFFF8E8FF))))
                 .then(
                     if (headerScrollConnection != null) {
                         Modifier.nestedScroll(headerScrollConnection)
@@ -292,21 +289,6 @@ private fun HomeContent(
                             .fillMaxWidth()
                             .align(Alignment.TopCenter),
                 ) {
-                    item(key = "ashley_greeting") {
-                        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-                        val greeting = when {
-                            hour in 5..11 -> stringResource(R.string.greeting_morning_ashley)
-                            hour in 12..17 -> stringResource(R.string.greeting_day_ashley)
-                            hour in 18..21 -> stringResource(R.string.greeting_evening_ashley)
-                            else -> stringResource(R.string.greeting_night_ashley)
-                        }
-                        Text(
-                            text = greeting,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp),
-                        )
-                    }
                     if (uiState.showCategoryChips && !uiState.homePage?.chips.isNullOrEmpty()) {
                         item(
                             key = "home_category_chips",

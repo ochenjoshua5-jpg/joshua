@@ -1,5 +1,6 @@
 /*
- * OJ Music Player (2026) | Modified work by MuwMix
+ * OJ MUSIC (2026) | Made by Ochen Joshua
+ * Based on YumaPlayer (2026) | Modified work by MuwMix
  * ArchiveTune (2026) | Original work by © Rukamori
  * GPL-3.0 License | Contributors: see git history
  */
@@ -269,8 +270,7 @@ private fun AboutScreenContent(
             }
 
             is AboutScreenState.Success -> {
-                AboutCreatorSplash(/* Ochen Joshua credit */)
-AboutSuccessContent(
+                AboutSuccessContent(
                     model = state.model,
                     onOpenUri = onOpenUri,
                     // onRetryContributors = onRetryContributors,
@@ -826,8 +826,7 @@ private fun segmentedListItemShape(
 }
 
 @Composable
-private fun AboutCreatorSplash(/* Ochen Joshua credit */)
-AboutSuccessContent(
+private fun AboutSuccessContent(
     model: AboutUiModel,
     onOpenUri: (String) -> Unit,
     // onRetryContributors: () -> Unit,
@@ -1046,7 +1045,7 @@ private fun AboutIdentityCard(
             )
 
             Text(
-                text = "Developed by Ochen Joshua\nBased on YumaPlayer (GPLv3).",
+                text = "Made by Ochen Joshua\nBased on YumaPlayer (GPLv3).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
