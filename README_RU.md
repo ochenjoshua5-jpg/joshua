@@ -1,8 +1,10 @@
 <div align="center">
 
-  <img src="assets/ic_launcher.webp" width="240" height="240" alt="YumaPlayer Icon" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);" />
+  <img src="assets/ic_launcher.webp" width="240" height="240" alt="OJ MUSIC Icon" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);" />
 
-  <h1>YumaPlayer (Yuma)</h1>
+  <h1>OJ MUSIC</h1>
+
+  <p><b>Made by Ochen Joshua</b></p>
 
   <p align="center">
     <a href="README.md">
@@ -29,9 +31,6 @@
   </p>
 
   <div>
-    <img src="https://img.shields.io/github/v/release/MuwMx/YumaPlayer?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Latest Release" />
-    <img src="https://img.shields.io/github/stars/MuwMx/YumaPlayer?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="GitHub Stars" />
-    <img src="https://img.shields.io/github/downloads/MuwMx/YumaPlayer/total?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Downloads" />
     <img src="https://img.shields.io/badge/License-GPLv3-6366f1?style=for-the-badge&logo=gnu&logoColor=white&labelColor=1e1e2e" alt="License: GPLv3" />
     <img src="https://img.shields.io/badge/Platform-Android%208.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white&labelColor=1e1e2e" alt="Android 8.0+" />
     <a href="https://t.me/yumaplayer"><img src="https://img.shields.io/badge/Telegram-Community-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white&labelColor=1e1e2e" alt="Telegram" /></a>
@@ -43,7 +42,7 @@
 
 ## 🌟 О проекте
 
-**YumaPlayer** — это независимый открытый музыкальный плеер для Android, объединяющий каталоги и функции двух ведущих платформ со стримингом и воспроизведением локальных треков в Hi-Res качестве.
+**OJ MUSIC** — это независимый открытый музыкальный плеер для Android, объединяющий каталоги и функции двух ведущих платформ со стримингом и воспроизведением локальных треков в Hi-Res качестве.
 
 Проект вырос как глубокая переработка **ArchiveTune** (с наработками от **Metrolist** и **SimpMusic**), вдохновлен механикой очередей **PixelPlayer**, сетевым взаимодействием со Spotify из **Meld** и стримингом FLAC из **Stash**. На этом фундаменте создана модульная архитектура из 13 модулей, собственная дизайн-система **YDS 2.1** и плавная жестовая модель с аппаратным ускорением.
 
@@ -140,7 +139,7 @@
 
 ## 🌍 Локализация (Globalization)
 
-YumaPlayer переведен на множество языков силами сообщества (Thanks Archivetune!).
+OJ MUSIC переведен на множество языков силами сообщества (Thanks Archivetune!).
 
 <div align="center">
   <img src="https://img.shields.io/badge/Translations-In_Progress-6366f1?style=for-the-badge&logo=weblate&labelColor=1e1e2e" alt="Translation Status" />
@@ -222,7 +221,7 @@ YumaPlayer переведен на множество языков силами 
 ### Сборка из исходников
 ```bash
 git clone https://github.com/MuwMx/YumaPlayer.git
-cd YumaPlayer
+cd OJ MUSIC
 ./gradlew assembleRelease
 # Готовый APK появится в: app/build/outputs/apk/release/
 ```
@@ -232,7 +231,7 @@ cd YumaPlayer
 
 ## ⚙️ Подключение аккаунтов
 
-YumaPlayer полностью функционален без логина. Авторизация нужна только для подтягивания ваших личных плейлистов и рекомендаций:
+OJ MUSIC полностью функционален без логина. Авторизация нужна только для подтягивания ваших личных плейлистов и рекомендаций:
 
 <details>
 <summary><b>🎵 Подключение Spotify</b></summary>
@@ -254,7 +253,7 @@ YumaPlayer полностью функционален без логина. Ав
 
 ## ☕ Поддержать проект (Support)
 
-YumaPlayer распространяется бесплатно, не содержит рекламы и не продает подписки. Если плеер вам понравился и вы хотите поддержать автора:
+OJ MUSIC распространяется бесплатно, не содержит рекламы и не продает подписки. Если плеер вам понравился и вы хотите поддержать автора:
 
 <div align="center">
   <a href="https://ko-fi.com/muwmix">
@@ -290,11 +289,11 @@ YumaPlayer распространяется бесплатно, не содер�
 ## ⚖️ Лицензия и Отказ от ответственности
 
 ### Лицензия
-YumaPlayer распространяется под свободной лицензией **GNU General Public License v3.0 (GPLv3)**. 
+OJ MUSIC распространяется под свободной лицензией **GNU General Public License v3.0 (GPLv3)**. 
 Вы можете свободно использовать, изучать, модифицировать и распространять код при условии сохранения авторских прав и открытия производного кода под аналогичной лицензией GPL-3.0.
 
 ### Отказ от ответственности (Disclaimer)
-YumaPlayer — это независимый неофициальный сторонний клиент. Проект **не связан с Google LLC, YouTube Music или Spotify AB** и не одобрен ими. Приложение создано исключительно для личного использования и управления собственной медиатекой.
+OJ MUSIC — это независимый неофициальный сторонний клиент. Проект **не связан с Google LLC, YouTube Music или Spotify AB** и не одобрен ими. Приложение создано исключительно для личного использования и управления собственной медиатекой.
 
 ---
 
@@ -302,3 +301,12 @@ YumaPlayer — это независимый неофициальный стор
   Разработано с ❤️ и вниманием к каждому кадру. Enjoy the music! 🎵
 </p>
 
+---
+
+## 👤 Авторы
+
+**OJ MUSIC** — сделано **Ochen Joshua**.
+
+Основано на открытом коде **YumaPlayer** (MuwMix) и **ArchiveTune** (Rukamori).
+Лицензия GNU General Public License v3.0 — все права оригинальных авторов сохранены,
+этот проект является переименованным и исправленным форком.

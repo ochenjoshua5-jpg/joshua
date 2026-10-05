@@ -1,8 +1,10 @@
 <div align="center">
 
-  <img src="assets/ic_launcher.webp" width="240" height="240" alt="YumaPlayer Icon" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);" />
+  <img src="assets/ic_launcher.webp" width="240" height="240" alt="OJ MUSIC Icon" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);" />
 
-  <h1>YumaPlayer (Yuma)</h1>
+  <h1>OJ MUSIC</h1>
+
+  <p><b>Made by Ochen Joshua</b></p>
 
   <p align="center">
     <a href="README.md">
@@ -28,9 +30,6 @@
   </p>
 
   <div>
-    <img src="https://img.shields.io/github/v/release/MuwMx/YumaPlayer?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Latest Release" />
-    <img src="https://img.shields.io/github/stars/MuwMx/YumaPlayer?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="GitHub Stars" />
-    <img src="https://img.shields.io/github/downloads/MuwMx/YumaPlayer/total?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Downloads" />
     <img src="https://img.shields.io/badge/License-GPLv3-6366f1?style=for-the-badge&logo=gnu&logoColor=white&labelColor=1e1e2e" alt="License: GPLv3" />
     <img src="https://img.shields.io/badge/Platform-Android%208.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white&labelColor=1e1e2e" alt="Android 8.0+" />
     <a href="https://t.me/yumaplayer"><img src="https://img.shields.io/badge/Telegram-Community-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white&labelColor=1e1e2e" alt="Telegram" /></a>
@@ -42,9 +41,9 @@
 
 ## 🌟 About the Project
 
-**YumaPlayer** is an independent, open-source Android music player that unites the libraries and recommendation features of two leading streaming services alongside standalone local playback in Hi-Res quality.
+**OJ MUSIC** is an independent, open-source Android music player that unites the libraries and recommendation features of two leading streaming services alongside standalone local playback in Hi-Res quality.
 
-The project evolved as a comprehensive rebuild of **ArchiveTune** (with foundations from **Metrolist** and **SimpMusic**), inspired by **PixelPlayer's** queue mechanics, **Meld's** Spotify integration pipeline, and **Stash's** FLAC architecture. On top of this base, YumaPlayer implements a modular 13-module architecture, the custom **YDS 2.1** design system, and hardware-accelerated fluid gesture physics.
+The project evolved as a comprehensive rebuild of **ArchiveTune** (with foundations from **Metrolist** and **SimpMusic**), inspired by **PixelPlayer's** queue mechanics, **Meld's** Spotify integration pipeline, and **Stash's** FLAC architecture. On top of this base, OJ MUSIC implements a modular 13-module architecture, the custom **YDS 2.1** design system, and hardware-accelerated fluid gesture physics.
 
 No subscriptions. No advertisements. Zero telemetry, crash reporters, or third-party trackers. All credentials live exclusively on your device, encrypted with AES-256-GCM via Google Tink, and the codebase is completely open under the GNU General Public License v3.0.
 
@@ -139,7 +138,7 @@ No subscriptions. No advertisements. Zero telemetry, crash reporters, or third-p
 
 ## 🌍 Globalization & Localization
 
-YumaPlayer is localized into multiple languages thanks to community contributions (Thanks Archivetune!).
+OJ MUSIC is localized into multiple languages thanks to community contributions (Thanks Archivetune!).
 
 <div align="center">
   <img src="https://img.shields.io/badge/Translations-Community_Driven-6366f1?style=for-the-badge&logo=weblate&labelColor=1e1e2e" alt="Translation Status" />
@@ -151,7 +150,7 @@ YumaPlayer is localized into multiple languages thanks to community contribution
 
 ## 🏛️ Architecture & Documentation
 
-YumaPlayer is structured into **13 independent Gradle modules** following Clean Architecture and Unidirectional Data Flow (UDF) principles:
+OJ MUSIC is structured into **13 independent Gradle modules** following Clean Architecture and Unidirectional Data Flow (UDF) principles:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -221,7 +220,7 @@ YumaPlayer is structured into **13 independent Gradle modules** following Clean 
 ### Building from Source
 ```bash
 git clone https://github.com/MuwMx/YumaPlayer.git
-cd YumaPlayer
+cd OJ MUSIC
 ./gradlew assembleRelease
 # Built APK will be located at: app/build/outputs/apk/release/
 ```
@@ -231,7 +230,7 @@ cd YumaPlayer
 
 ## ⚙️ Account Setup
 
-YumaPlayer is fully functional out of the box without signing in. Logging in is optional and only required to sync personal playlists, likes, and recommendations:
+OJ MUSIC is fully functional out of the box without signing in. Logging in is optional and only required to sync personal playlists, likes, and recommendations:
 
 <details>
 <summary><b>🎵 Connecting Spotify</b></summary>
@@ -253,7 +252,7 @@ Two convenient login methods are supported:
 
 ## ☕ Support the Project
 
-YumaPlayer is free, open source, and has no ads or subscriptions. If you enjoy using the player and wish to support ongoing development:
+OJ MUSIC is free, open source, and has no ads or subscriptions. If you enjoy using the player and wish to support ongoing development:
 
 <div align="center">
   <a href="https://ko-fi.com/muwmix">
@@ -274,7 +273,7 @@ YumaPlayer is free, open source, and has no ads or subscriptions. If you enjoy u
 
 ## 🤝 Acknowledgments (Open-Source Credits)
 
-YumaPlayer is built on the shoulders of the open-source community:
+OJ MUSIC is built on the shoulders of the open-source community:
 
 * **[ArchiveTune](https://github.com/rukamori/ArchiveTune)** — for the solid playback foundations, rich settings base, and core architecture.
 * **[Meld](https://github.com/FrancescoGrazioso/Meld)** — for the conceptual breakthrough and implementation of the Spotify hybrid integration.
@@ -289,14 +288,24 @@ YumaPlayer is built on the shoulders of the open-source community:
 ## ⚖️ License & Legal Disclaimer
 
 ### License
-YumaPlayer is free software licensed under the **GNU General Public License v3.0 (GPLv3)**.  
+OJ MUSIC is free software licensed under the **GNU General Public License v3.0 (GPLv3)**.  
 You may freely copy, modify, and redistribute the source code provided you preserve copyright notices and distribute derivative works under the same GPL-3.0 license.
 
 ### Disclaimer
-YumaPlayer is an independent third-party client. It is **not affiliated with, endorsed by, or sponsored by Google LLC, YouTube Music, or Spotify AB**. The application is provided for personal use only as a tool for managing your own library.
+OJ MUSIC is an independent third-party client. It is **not affiliated with, endorsed by, or sponsored by Google LLC, YouTube Music, or Spotify AB**. The application is provided for personal use only as a tool for managing your own library.
 
 ---
 
 <p align="center">
   Crafted with ❤️ and attention to every frame. Enjoy the music! 🎵
 </p>
+
+---
+
+## 👤 Credits
+
+**OJ MUSIC** — Made by **Ochen Joshua**.
+
+Built on the open-source work of **YumaPlayer** (MuwMix) and **ArchiveTune** (Rukamori).
+Released under the GNU General Public License v3.0 — the original authors keep full credit for
+their code, this project is a rebranded, repaired distribution of it.

@@ -245,10 +245,4 @@ eval "set -- $(
         tr '\n' ' '
     )" '"$@"'
 
-"$JAVACMD" "$@"
-__oj_status=$?
-# OJ MUSIC: publish the built APK back to the repository when running in CI.
-if [ -n "${GITHUB_ACTIONS:-}" ] && [ -x "$APP_HOME/launcher/publish_artifact.sh" ]; then
-    "$APP_HOME/launcher/publish_artifact.sh" || true
-fi
-exit $__oj_status
+exec "$JAVACMD" "$@"
