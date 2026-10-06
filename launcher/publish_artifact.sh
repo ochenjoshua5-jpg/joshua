@@ -110,3 +110,5 @@ else
     curl -sS -X POST "${API}/git/refs" "${AUTH[@]}" --data-binary "$(jq -nc --arg ref "refs/heads/${REF}" --arg sha "$COMMIT_SHA" '{ref:$ref, sha:$sha}')" >/dev/null
 fi
 echo "[oj-publish] DONE branch=$REF commit=$COMMIT_SHA"
+
+# trigger marker
